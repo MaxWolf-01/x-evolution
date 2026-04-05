@@ -99,7 +99,8 @@ class EvoStrategy(Module):
         reject_generation_fitnesses_if: Callable[[Tensor], bool] | None = None,
         vectorized = False,
         vector_size: int | None = None,
-        sync_on_init = True
+        sync_on_init = True,
+        on_after_generation: Callable[[int, Tensor, Module], None] | None = None
     ):
         super().__init__()
         self.verbose = verbose
@@ -244,6 +245,7 @@ class EvoStrategy(Module):
             self.sigma_scheduler = sigma_scheduler_klass(self.sigma_optimizer, **sigma_scheduler_kwargs)
 
         self.reject_generation_fitnesses_if = reject_generation_fitnesses_if
+        self.on_after_generation = on_after_generation
 
         # checkpointing
 
@@ -572,6 +574,11 @@ class EvoStrategy(Module):
                 msg += f' | average sigma: {avg_sigma:.3f}'
 
             self.print(msg)
+
+            # maybe callback
+
+            if exists(self.on_after_generation):
+                self.on_after_generation(generation, fitnesses, self.model)
 
             # maybe checkpoint
 
