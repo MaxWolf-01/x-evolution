@@ -389,14 +389,36 @@ class EvoStrategy(Module):
             for sigma in self.sigmas:
                 self.sigma_clamp_(sigma)
 
-    def checkpoint(self, filename = 'evolved.model'):
+    def checkpoint(self, filename = 'evolved.model', generation = None):
 
         if self.accelerate.is_main_process:
 
             filepath = self.checkpoint_folder / f'{filename}.pt'
-            torch.save(self.model.state_dict(), str(filepath))
+            state = {'model': self.model.state_dict()}
+            if self.use_optimizer:
+                state['optimizer'] = self.optimizer.state_dict()
+            if self.learned_noise_scale:
+                state['sigmas'] = [s.data.clone() for s in self.sigmas]
+                if self.use_sigma_optimizer:
+                    state['sigma_optimizer'] = self.sigma_optimizer.state_dict()
+            if exists(generation):
+                state['generation'] = generation
+            torch.save(state, str(filepath))
 
         self.accelerate.wait_for_everyone()
+
+    def load_checkpoint(self, filepath):
+
+        state = torch.load(str(filepath), weights_only = False, map_location = self.device)
+        self.model.load_state_dict(state['model'])
+        if 'optimizer' in state and self.use_optimizer:
+            self.optimizer.load_state_dict(state['optimizer'])
+        if 'sigmas' in state and self.learned_noise_scale:
+            for s, saved in zip(self.sigmas, state['sigmas']):
+                s.data.copy_(saved)
+            if 'sigma_optimizer' in state and self.use_sigma_optimizer:
+                self.sigma_optimizer.load_state_dict(state['sigma_optimizer'])
+        return state.get('generation', 0)
 
     @torch.inference_mode()
     def forward(
@@ -405,7 +427,8 @@ class EvoStrategy(Module):
         num_generations = None,
         disable_distributed = False,
         rollback_model_at_end = False,
-        verbose = None
+        verbose = None,
+        resume_from = None
     ):
         verbose = default(verbose, self.verbose)
 
@@ -454,6 +477,10 @@ class EvoStrategy(Module):
         num_generations = default(num_generations, self.num_generations)
 
         generation = 1
+
+        if exists(resume_from):
+            generation = self.load_checkpoint(resume_from) + 1
+            self.print(f'resumed from {resume_from} at generation {generation}')
 
         fitnesses_across_generations = []
 
@@ -586,7 +613,7 @@ class EvoStrategy(Module):
                 exists(self.checkpoint_every) and
                 divisible_by(generation, self.checkpoint_every)
             ):
-                self.checkpoint(f'{filename}.{generation}.pt')
+                self.checkpoint(f'{filename}.{generation}', generation = generation)
 
             # increment generation
 
@@ -596,7 +623,7 @@ class EvoStrategy(Module):
 
         # final checkpoint
 
-        self.checkpoint(f'{filename}.final.{generation}')
+        self.checkpoint(f'{filename}.final.{generation}', generation = generation)
 
         # maybe rollback
 
