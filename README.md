@@ -2,6 +2,8 @@
 
 Implementation of various evolutionary algorithms, starting with [evolutionary strategies](https://blog.otoro.net/2017/10/29/visual-evolution-strategies/)
 
+[explained by @bycloud](https://www.youtube.com/watch?v=lLkE9w1NJs0)
+
 ## Install
 
 ```bash
