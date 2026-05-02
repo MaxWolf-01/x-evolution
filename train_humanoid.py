@@ -85,7 +85,7 @@ class HumanoidEnvironment(Module):
             step = 0
             hiddens = None
             last_action = None
-            
+
             dones = torch.zeros(num_envs, device = device, dtype = torch.bool)
 
             while step < self.max_steps and not dones.all():

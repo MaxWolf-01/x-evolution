@@ -181,7 +181,7 @@ class EvoStrategy(Module):
         # dtypes
 
         self.param_dtypes = {name: param.dtype for name, param in named_parameters_dict.items()}
- 
+
         # hyperparameters
 
         self.noise_population_size = noise_population_size

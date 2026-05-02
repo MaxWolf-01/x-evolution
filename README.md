@@ -45,7 +45,7 @@ evo_strat()
 
 ## Distributed
 
-Using the CLI from 🤗 
+Using the CLI from 🤗
 
 ```shell
 $ accelerate config
@@ -74,25 +74,25 @@ For gymnasium simulations, first run `pip install '[examples]'`
 
 ```bibtex
 @misc{sarkar2025evolutionstrategieshyperscale,
-    title   = {Evolution Strategies at the Hyperscale}, 
+    title   = {Evolution Strategies at the Hyperscale},
     author  = {Bidipta Sarkar and Mattie Fellows and Juan Agustin Duque and Alistair Letcher and Antonio León Villares and Anya Sims and Dylan Cope and Jarek Liesen and Lukas Seier and Theo Wolf and Uljad Berdica and Alexander David Goldie and Aaron Courville and Karin Sevegnani and Shimon Whiteson and Jakob Nicolaus Foerster},
     year    = {2025},
     eprint  = {2511.16652},
     archivePrefix = {arXiv},
     primaryClass = {cs.LG},
-    url     = {https://arxiv.org/abs/2511.16652}, 
+    url     = {https://arxiv.org/abs/2511.16652},
 }
 ```
 
 ```bibtex
 @misc{fortunato2019noisynetworksexploration,
-    title   = {Noisy Networks for Exploration}, 
+    title   = {Noisy Networks for Exploration},
     author  = {Meire Fortunato and Mohammad Gheshlaghi Azar and Bilal Piot and Jacob Menick and Ian Osband and Alex Graves and Vlad Mnih and Remi Munos and Demis Hassabis and Olivier Pietquin and Charles Blundell and Shane Legg},
     year    = {2019},
     eprint  = {1706.10295},
     archivePrefix = {arXiv},
     primaryClass = {cs.LG},
-    url     = {https://arxiv.org/abs/1706.10295}, 
+    url     = {https://arxiv.org/abs/1706.10295},
 }
 ```
 

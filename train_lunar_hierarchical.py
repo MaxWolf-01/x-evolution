@@ -46,6 +46,18 @@ def parse_string_schedule(schedule_str):
     assert len(phases) > 0, 'could not parse phase schedule string'
     return phases
 
+# orthogonal update from inner to outer
+
+def orthogonal_project(x, residual):
+    dtype = residual.dtype
+    residual, x = residual.double(), x.double()
+
+    unit = F.normalize(residual, dim = -1)
+    parallel = (x * unit).sum(dim = -1, keepdim = True) * unit
+    orthogonal = x - parallel
+
+    return orthogonal.to(dtype)
+
 # hierarchical transformer
 # outer pre -> inner (residual gated every inner_update_every steps) -> outer post
 
@@ -75,8 +87,11 @@ class HierarchicalTransformer(Module):
         )
 
         self.outer_pre = Decoder(depth = outer_depth, **decoder_kwargs)
+
         self.inner = Decoder(depth = inner_depth, **decoder_kwargs)
+        self.inner_gru_norm = nn.RMSNorm(dim)
         self.inner_gru = nn.GRU(dim, dim, batch_first = True)
+
         self.outer_post = Decoder(depth = outer_depth, **decoder_kwargs)
 
         self.to_logits = nn.Sequential(
@@ -90,28 +105,39 @@ class HierarchicalTransformer(Module):
 
         x = self.token_emb(x)
 
-        cache_pre, cache_inner, cache_post, cache_gru = cache if exists(cache) else (None, None, None, None)
+        cache_pre, cache_inner, cache_post, cache_gru, last_inner_update = cache if exists(cache) else (None, None, None, None, None)
 
         # outer pre
 
         x, cache_pre = self.outer_pre(x, cache = cache_pre, return_hiddens = True)
 
-        # inner - always runs for KV context, but residual only applied every inner_update_every steps
-
-        x_inner, cache_inner = self.inner(x, cache = cache_inner, return_hiddens = True)
-
-        x_inner, cache_gru = self.inner_gru(x_inner, cache_gru)
-
         should_update = (step % self.inner_update_every) == 0
 
+        # let the inner network know when it is an update step
+
+        x_inner = x
+
         if should_update:
-            x = x_inner + self.inner_update_emb
+            x_inner = x_inner + self.inner_update_emb
+
+        # inner - always runs for KV context, but residual only applied every inner_update_every steps
+
+        x_inner, cache_inner = self.inner(x_inner, cache = cache_inner, return_hiddens = True)
+
+        x_inner_gru, cache_gru = self.inner_gru(self.inner_gru_norm(x_inner), cache_gru)
+        x_inner = x_inner + x_inner_gru
+
+        if should_update:
+            last_inner_update = orthogonal_project(x_inner, residual = x)
+
+        if exists(last_inner_update):
+            x = x + last_inner_update
 
         # outer post
 
         x, cache_post = self.outer_post(x, cache = cache_post, return_hiddens = True)
 
-        return self.to_logits(x), (cache_pre, cache_inner, cache_post, cache_gru)
+        return self.to_logits(x), (cache_pre, cache_inner, cache_post, cache_gru, last_inner_update)
 
 # environment
 
@@ -254,7 +280,7 @@ def main(
 
     # partition parameters into inner vs outer
 
-    inner_param_ids = {id(p) for p in model.inner.parameters()} | {id(model.inner_update_emb)} | {id(p) for p in model.inner_gru.parameters()}
+    inner_param_ids = {id(p) for p in model.inner.parameters()} | {id(model.inner_update_emb)} | {id(p) for p in model.inner_gru.parameters()} | {id(p) for p in model.inner_gru_norm.parameters()}
 
     inner_params = [p for p in model.parameters() if id(p) in inner_param_ids]
     outer_params = [p for p in model.parameters() if id(p) not in inner_param_ids]

@@ -77,7 +77,7 @@ class AntMazeEnvironment(Module):
 
             step = 0
             hiddens = None
-            
+
             dones = torch.zeros(num_envs, device = device, dtype = torch.bool)
 
             while step < self.max_steps and not dones.all():
@@ -174,7 +174,7 @@ def main(
     temp_env = gym.make(env_id)
     obs_space = temp_env.observation_space
     action_space = temp_env.action_space
-    
+
     state_dim = obs_space['observation'].shape[0] + obs_space['desired_goal'].shape[0]
     action_dim = action_space.shape[0]
     temp_env.close()
