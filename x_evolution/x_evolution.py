@@ -97,6 +97,7 @@ class EvoStrategy(Module):
         accelerator: Accelerator | None = None,
         accelerate_kwargs: dict = dict(),
         reject_generation_fitnesses_if: Callable[[Tensor], bool] | None = None,
+        on_result: Callable | None = None,
         vectorized = False,
         vector_size: int | None = None,
         sync_on_init = True
@@ -106,6 +107,7 @@ class EvoStrategy(Module):
 
         self.vectorized = vectorized
         self.vector_size = vector_size
+        self.on_result = on_result
 
         if not exists(accelerator):
             accelerator = Accelerator(cpu = cpu, **accelerate_kwargs)
@@ -522,7 +524,10 @@ class EvoStrategy(Module):
 
                 if not self.mirror_sampling:
                     fitnesses.append(fitness)
-                    pbar.set_postfix(reward = f'{fitness:.3f}')
+
+                    if exists(self.on_result):
+                        self.on_result(fitness, pbar)
+
                     continue
 
                 # handle mirror sampling
@@ -530,7 +535,10 @@ class EvoStrategy(Module):
                 fitness_mirrored = get_fitness(negate = True)
 
                 fitnesses.append([fitness, fitness_mirrored])
-                pbar.set_postfix(reward = f'{(fitness + fitness_mirrored) / 2:.3f}')
+                avg_fitness = (fitness + fitness_mirrored) / 2
+
+                if exists(self.on_result):
+                    self.on_result(avg_fitness, pbar)
 
             pbar.close()
 
