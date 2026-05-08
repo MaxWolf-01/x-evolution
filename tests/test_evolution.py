@@ -13,6 +13,7 @@ model = MLP(8, 16, 4)
 @param('multi_models', (False, True))
 @param('learned_sigma', (False, True))
 @param('use_sigma_optimizer', (False, True))
+@param('fitness_to_weighted_factor', ('normalize', 'centered_rank'))
 def test_evo_strat(
     params_to_optimize,
     use_optimizer,
@@ -20,7 +21,8 @@ def test_evo_strat(
     mirror_sampling,
     multi_models,
     learned_sigma,
-    use_sigma_optimizer
+    use_sigma_optimizer,
+    fitness_to_weighted_factor
 ):
     from random import randrange
 
@@ -40,7 +42,8 @@ def test_evo_strat(
         use_optimizer = use_optimizer,
         noise_low_rank = noise_low_rank,
         mirror_sampling = mirror_sampling,
-        use_sigma_optimizer = use_sigma_optimizer
+        use_sigma_optimizer = use_sigma_optimizer,
+        fitness_to_weighted_factor = fitness_to_weighted_factor
     )
 
     evo_strat('evolve', 1)

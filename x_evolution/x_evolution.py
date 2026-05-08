@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable
+from typing import Callable, Literal
 
 from math import ceil
 from pathlib import Path
@@ -27,6 +27,7 @@ from x_mlps_pytorch.noisable import (
 )
 
 from einops import pack
+from torch_einops_utils import pack_with_inverse
 
 # constants
 
@@ -46,14 +47,30 @@ def identity(t):
 def divisible_by(num, den):
     return (num % den) == 0
 
-def normalize(t, eps = 1e-6):
-    return F.layer_norm(t, t.shape, eps = eps)
-
 def accum_grad_(t, value):
     if not exists(t.grad):
         t.grad = value.clone()
     else:
         t.grad.add_(value)
+
+# fitness weighting factors
+
+def normalize(t, eps = 1e-6):
+    return F.layer_norm(t, t.shape, eps = eps)
+
+def centered_rank_normalize(fitnesses):
+    dtype, device, n = fitnesses.dtype, fitnesses.device, fitnesses.numel()
+    flat_fitnesses, inverse = pack_with_inverse(fitnesses, '*')
+    ranks = flat_fitnesses.argsort().argsort().to(dtype = dtype)
+    ranks = (ranks / (n - 1)) - 0.5
+    return inverse(ranks)
+
+FITNESS_WEIGHT_FACTORS = dict(
+    normalize = normalize,
+    centered_rank = centered_rank_normalize
+)
+
+FitnessWeightFactorType = Literal['normalize', 'centered_rank']
 
 # class
 
@@ -89,7 +106,7 @@ class EvoStrategy(Module):
         sigma_scheduler_klass: type[LRScheduler] | None = None,
         sigma_scheduler_kwargs: dict = dict(),
         transform_fitness: Callable = identity,
-        fitness_to_weighted_factor: Callable[[Tensor], Tensor] = normalize,
+        fitness_to_weighted_factor: Callable[[Tensor], Tensor] | FitnessWeightFactorType = 'normalize',
         checkpoint_every = None,            # saving every number of generations
         checkpoint_path = './checkpoints',
         cpu = False,
@@ -192,6 +209,11 @@ class EvoStrategy(Module):
         # the function that transforms a tensor of fitness floats to the weight for the weighted average of the noise for rolling out 1x1 ES
 
         self.transform_fitness = transform_fitness # a function that gets called before converting to weights for the weighted noise update - eventually get rank normalization
+
+        if isinstance(fitness_to_weighted_factor, str):
+            if fitness_to_weighted_factor not in FITNESS_WEIGHT_FACTORS:
+                raise ValueError(f'fitness_to_weighted_factor must be one of {list(FITNESS_WEIGHT_FACTORS.keys())}')
+            fitness_to_weighted_factor = FITNESS_WEIGHT_FACTORS[fitness_to_weighted_factor]
 
         self.fitness_to_weighted_factor = fitness_to_weighted_factor
 

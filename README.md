@@ -50,16 +50,26 @@ evo_strat()
 Using the CLI from 🤗
 
 ```shell
-$ accelerate config
+$ uv run accelerate config
 ```
 
 Then
 
 ```shell
-$ accelerate launch train.py
+$ uv run accelerate launch train.py
 ```
 
-For gymnasium simulations, first run `pip install '[examples]'`
+Or with `torchrun` (which can do multiple CPU processes for testing)
+
+```shell
+$ uv run torchrun --nproc_per_node=<N> train.py --cpu True
+```
+
+For a quick demo on LunarLander with 8 processes
+
+```shell
+$ uv run torchrun --nproc_per_node=8 train_lunar.py --cpu True --noise_population_size 100 --fitness_to_weighted_factor centered_rank
+```
 
 ## Citations
 

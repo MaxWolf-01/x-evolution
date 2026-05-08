@@ -8,6 +8,9 @@
 # ]
 # ///
 
+import os
+os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
+
 import fire
 from shutil import rmtree
 
@@ -108,7 +111,9 @@ class LunarEnvironment(Module):
 def main(
     vectorized = False,
     num_envs = 8,
-    cpu = False
+    cpu = False,
+    fitness_to_weighted_factor = 'normalize',
+    noise_population_size = 50
 ):
     actor = ResidualNormedMLP(dim_in = 8, dim = 24, depth = 2, residual_every = 1, dim_out = 4)
 
@@ -125,8 +130,9 @@ def main(
         vectorized = vectorized,
         vector_size = num_envs,
         cpu = cpu,
+        fitness_to_weighted_factor = fitness_to_weighted_factor,
         num_generations = 50_000,
-        noise_population_size = 50,
+        noise_population_size = noise_population_size,
         noise_low_rank = 1,
         noise_scale = 1e-2,
         noise_scale_clamp_range = (5e-3, 2e-2),
