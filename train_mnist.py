@@ -38,7 +38,7 @@ def mnist_environment(
     batch_size = 256
 ):
     device = next(model.parameters()).device
-    
+
     iters = num_envs if vectorized else 1
 
     losses = []
@@ -53,7 +53,7 @@ def mnist_environment(
         with torch.no_grad():
             logits = model(data.half())
             loss = F.cross_entropy(logits, target)
-        
+
         losses.append(-loss)
 
     if not vectorized:

@@ -8,16 +8,23 @@
 # ]
 # ///
 
+import os
+os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
+
 import fire
 from shutil import rmtree
-import gymnasium as gym
+
 import numpy as np
+import gymnasium as gym
 
 import torch
+import torch.distributed as dist
 from torch.nn import Module
 import torch.nn.functional as F
-from x_mlps_pytorch.residual_normed_mlp import ResidualNormedMLP
 from torch.optim.lr_scheduler import CosineAnnealingLR
+
+from x_mlps_pytorch.residual_normed_mlp import ResidualNormedMLP
+from x_evolution import EvoStrategy
 
 class LunarEnvironment(Module):
     def __init__(
@@ -102,15 +109,17 @@ class LunarEnvironment(Module):
 
         return cum_reward / self.repeats
 
-# evo strategy
-
-from x_evolution import EvoStrategy
-
 def main(
     vectorized = False,
-    num_envs = 8
+    num_envs = 8,
+    cpu = False,
+    fitness_to_weighted_factor = 'normalize',
+    noise_population_size = 50
 ):
     actor = ResidualNormedMLP(dim_in = 8, dim = 24, depth = 2, residual_every = 1, dim_out = 4)
+
+    def on_result(fitness, pbar):
+        pbar.set_postfix(reward = f'{fitness:.3f}')
 
     evo_strat = EvoStrategy(
         actor,
@@ -121,8 +130,10 @@ def main(
         ),
         vectorized = vectorized,
         vector_size = num_envs,
+        cpu = cpu,
+        fitness_to_weighted_factor = fitness_to_weighted_factor,
         num_generations = 50_000,
-        noise_population_size = 50,
+        noise_population_size = noise_population_size,
         noise_low_rank = 1,
         noise_scale = 1e-2,
         noise_scale_clamp_range = (5e-3, 2e-2),
@@ -132,10 +143,17 @@ def main(
         noise_scale_learning_rate = 1e-4,
         use_scheduler = True,
         scheduler_klass = CosineAnnealingLR,
-        scheduler_kwargs = dict(T_max = 50_000)
+        scheduler_kwargs = dict(T_max = 50_000),
+        on_result = on_result
     )
 
     evo_strat()
+
+    # cleanup
+
+    if dist.is_initialized():
+        dist.destroy_process_group()
+        os._exit(0)
 
 if __name__ == '__main__':
     fire.Fire(main)

@@ -41,7 +41,7 @@ def xor_environment(
         with torch.no_grad():
             logits = model(data.half())
             loss = F.cross_entropy(logits, labels)
-        
+
         losses.append(-loss)
 
     if not vectorized:

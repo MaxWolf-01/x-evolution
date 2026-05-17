@@ -2,6 +2,8 @@
 
 Implementation of various evolutionary algorithms, starting with [evolutionary strategies](https://blog.otoro.net/2017/10/29/visual-evolution-strategies/)
 
+[explained by @bycloud](https://www.youtube.com/watch?v=lLkE9w1NJs0)
+
 ## Install
 
 ```bash
@@ -45,19 +47,29 @@ evo_strat()
 
 ## Distributed
 
-Using the CLI from 🤗 
+Using the CLI from 🤗
 
 ```shell
-$ accelerate config
+$ uv run accelerate config
 ```
 
 Then
 
 ```shell
-$ accelerate launch train.py
+$ uv run accelerate launch train.py
 ```
 
-For gymnasium simulations, first run `pip install '[examples]'`
+Or with `torchrun` (which can do multiple CPU processes for testing)
+
+```shell
+$ uv run torchrun --nproc_per_node=<N> train.py --cpu True
+```
+
+For a quick demo on LunarLander with 8 processes
+
+```shell
+$ uv run torchrun --nproc_per_node=8 train_lunar.py --cpu True --noise_population_size 100 --fitness_to_weighted_factor centered_rank
+```
 
 ## Citations
 
@@ -74,25 +86,25 @@ For gymnasium simulations, first run `pip install '[examples]'`
 
 ```bibtex
 @misc{sarkar2025evolutionstrategieshyperscale,
-    title   = {Evolution Strategies at the Hyperscale}, 
+    title   = {Evolution Strategies at the Hyperscale},
     author  = {Bidipta Sarkar and Mattie Fellows and Juan Agustin Duque and Alistair Letcher and Antonio León Villares and Anya Sims and Dylan Cope and Jarek Liesen and Lukas Seier and Theo Wolf and Uljad Berdica and Alexander David Goldie and Aaron Courville and Karin Sevegnani and Shimon Whiteson and Jakob Nicolaus Foerster},
     year    = {2025},
     eprint  = {2511.16652},
     archivePrefix = {arXiv},
     primaryClass = {cs.LG},
-    url     = {https://arxiv.org/abs/2511.16652}, 
+    url     = {https://arxiv.org/abs/2511.16652},
 }
 ```
 
 ```bibtex
 @misc{fortunato2019noisynetworksexploration,
-    title   = {Noisy Networks for Exploration}, 
+    title   = {Noisy Networks for Exploration},
     author  = {Meire Fortunato and Mohammad Gheshlaghi Azar and Bilal Piot and Jacob Menick and Ian Osband and Alex Graves and Vlad Mnih and Remi Munos and Demis Hassabis and Olivier Pietquin and Charles Blundell and Shane Legg},
     year    = {2019},
     eprint  = {1706.10295},
     archivePrefix = {arXiv},
     primaryClass = {cs.LG},
-    url     = {https://arxiv.org/abs/1706.10295}, 
+    url     = {https://arxiv.org/abs/1706.10295},
 }
 ```
 
